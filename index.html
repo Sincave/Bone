@@ -1153,56 +1153,241 @@ function closeModal() {
     document.getElementById('monthlyModal').style.display = 'none';
 }
 
-// تحميل ملخص الشهر كـ PDF
+// تحميل البون كـ PDF (مُحسّن)
+function downloadReceipt() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // إعدادات للغة العربية
+    doc.setR2L(true); // تمكين الكتابة من اليمين لليسار
+    
+    // إضافة خط يدعم العربية (نستخدم الخط الافتراضي مع تعديلات)
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    
+    const receipt = document.getElementById('receipt');
+    const lines = receipt.querySelectorAll('.receipt-line');
+    
+    // الحصول على البيانات
+    const header = receipt.querySelector('.receipt-header');
+    const date = header ? header.querySelector('p')?.textContent : new Date().toLocaleString('ar-EG');
+    const invoiceNum = header ? header.querySelector('p[style*="font-size: 0.9em"]')?.textContent : '';
+    
+    // العنوان الرئيسي
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ELHOMSSI PARFUMS', 105, 20, { align: 'center' });
+    
+    // عنوان الفاتورة
+    doc.setFontSize(16);
+    doc.text('فاتورة مبيعات', 105, 30, { align: 'center' });
+    
+    // معلومات الفاتورة
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(date, 105, 38, { align: 'center' });
+    
+    if (invoiceNum) {
+        doc.text(invoiceNum, 105, 44, { align: 'center' });
+    }
+    
+    // خط فاصل
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(20, 48, 190, 48);
+    
+    // تفاصيل الفاتورة
+    let y = 55;
+    doc.setFontSize(12);
+    
+    lines.forEach(line => {
+        const spans = line.querySelectorAll('span');
+        if (spans.length >= 2) {
+            const leftText = spans[0].textContent;
+            const rightText = spans[1].textContent;
+            
+            // كتابة النص مع محاذاة مناسبة للعربية
+            doc.text(rightText, 190, y, { align: 'right' });
+            doc.text(leftText, 20, y, { align: 'left' });
+            
+            y += 10;
+            
+            // إضافة خط فاصل للمجموع النهائي
+            if (leftText.includes('المجموع النهائي')) {
+                doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(1);
+                doc.line(20, y - 2, 190, y - 2);
+                y += 5;
+            }
+        }
+    });
+    
+    // تذييل الفاتورة
+    y += 10;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('شكراً لثقتكم بنا', 105, y, { align: 'center' });
+    
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('التوصيل أقل من 24 ساعة، ستحصل على طلبك قريباً', 105, y, { align: 'center' });
+    
+    // معلومات إضافية
+    y += 15;
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('للاستفسارات: contact@elhomssi.com | هاتف: +212 123 456 789', 105, y, { align: 'center' });
+    
+    // حفظ الملف
+    doc.save(`فاتورة-ELHOMSSI-${Date.now()}.pdf`);
+}
+
+// تحميل ملخص الشهر كـ PDF (مُحسّن)
 function downloadMonthlyPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const monthElement = document.querySelector('#monthSummary h4');
-    const month = monthElement ? monthElement.textContent.split(' ').pop() : 'غير محدد';
     
-    doc.setFont('cairo', 'normal');
-    doc.setFontSize(20);
-    doc.setTextColor(0, 0, 0);
+    // إعدادات للغة العربية
+    doc.setR2L(true);
+    doc.setFont('helvetica', 'normal');
+    
+    const monthElement = document.querySelector('#monthSummary h4');
+    const month = monthElement ? monthElement.textContent.replace(' ', '') : 'غير محدد';
+    
+    // العنوان الرئيسي
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
     doc.text('ELHOMSSI PARFUMS', 105, 20, { align: 'center' });
     
-    doc.setFontSize(16);
-    doc.text(`ملخص مبيعات ${month}`, 105, 35, { align: 'center' });
+    // عنوان التقرير
+    doc.setFontSize(18);
+    doc.text(`تقرير مبيعات ${month}`, 105, 32, { align: 'center' });
     
-    const content = document.getElementById('monthSummary');
-    const textContent = content.textContent;
-    const lines = textContent.split('\n').filter(line => line.trim());
-    
-    let y = 50;
+    // تاريخ الإنشاء
     doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    const creationDate = new Date().toLocaleString('ar-EG', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    doc.text(`تاريخ الإنشاء: ${creationDate}`, 105, 40, { align: 'center' });
     
-    lines.forEach((line, index) => {
-        if (y > 280) {
+    // خط فاصل
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(20, 45, 190, 45);
+    
+    let y = 55;
+    
+    // الحصول على محتوى الملخص
+    const summaryContent = document.getElementById('monthSummary');
+    const sections = summaryContent.querySelectorAll('div[style*="background"]');
+    
+    // عرض كل قسم
+    sections.forEach((section, index) => {
+        if (y > 250) {
             doc.addPage();
             y = 20;
         }
         
-        // تلوين وتنسيق مختلف للعناوين والأرقام المهمة
-        if (line.includes('درهم') && (line.includes('إجمالي') || line.includes('الكامل'))) {
-            doc.setFontSize(14);
+        const title = section.querySelector('h5')?.textContent || '';
+        const value = section.querySelector('p')?.textContent || '';
+        
+        if (title && value) {
+            // خلفية للقسم (محاكاة للون في HTML)
+            if (index === 2) { // القسم الأسود
+                doc.setFillColor(0, 0, 0);
+                doc.rect(20, y - 8, 170, 25, 'F');
+                doc.setTextColor(255, 255, 255);
+            } else {
+                doc.setFillColor(240, 240, 240);
+                doc.rect(20, y - 8, 170, 25, 'F');
+                doc.setTextColor(0, 0, 0);
+            }
+            
+            // العنوان
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(title, 185, y, { align: 'right' });
+            
+            // القيمة
+            doc.setFontSize(index === 2 ? 16 : 14);
+            doc.text(value, 105, y + 10, { align: 'center' });
+            
+            y += 30;
             doc.setTextColor(0, 0, 0);
-            doc.text(line, 20, y, { maxWidth: 170 });
-            y += 12;
-            doc.setFontSize(11);
-        } else if (line.includes('قطعة') || line.includes('منتج')) {
-            doc.setTextColor(51, 51, 51);
-            doc.text(line, 20, y, { maxWidth: 170 });
-            y += 8;
-        } else {
-            doc.setTextColor(102, 102, 102);
-            doc.text(line, 20, y, { maxWidth: 170 });
-            y += 10;
         }
     });
     
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
-    doc.text('تم إنشاء التقرير بواسطة نظام ELHOMSSI Parfums', 105, 290, { align: 'center' });
+    // عرض قائمة المنتجات الأكثر مبيعاً
+    y += 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('المنتجات الأكثر مبيعاً', 185, y, { align: 'right' });
     
-    doc.save(`ملخص-مبيعات-${month}-${Date.now()}.pdf`);
-}
+    y += 10;
+    const productsList = summaryContent.querySelector('ul');
+    if (productsList) {
+        const products = productsList.querySelectorAll('li');
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+        
+        products.forEach((product, index) => {
+            if (y > 270) {
+                doc.addPage();
+                y = 30;
+            }
+            
+            const text = product.textContent.trim();
+            doc.text(text, 185, y, { align: 'right' });
+            y += 8;
+            
+            // خط فاصل بين المنتجات
+            if (index < products.length - 1) {
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.2);
+                doc.line(30, y - 2, 185, y - 2);
+                y += 3;
+            }
+        });
+    }
+    
+    // المعلومات الإحصائية
+    const stats = summaryContent.querySelector('div[style*="color: #666"]');
+    if (stats) {
+        y += 10;
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(20, y, 190, y);
+        y += 5;
+        
+        const statsText = stats.textContent.split('\n').filter(line => line.trim());
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        
+        statsText.forEach(line => {
+            if (y > 280) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.text(line.trim(), 185, y, { align: 'right' });
+            y += 7;
+        });
+    }
+    
+    // تذييل الصفحة
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text('تم إنشاء هذا التقرير تلقائياً بواسطة نظام إدارة مبيعات ELHOMSSI Parfums', 105, 290, { align: 'center' });
+    doc.text('جميع الحقوق محفوظة © ' + new Date().getFullYear(), 105, 295, { align: 'center' });
+    
+    // حفظ الملف
+    doc.save(`تقرير-مبيعات-${month}-${Date.now()}.pdf`);
+    }
 </script>
