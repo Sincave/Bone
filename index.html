@@ -771,8 +771,8 @@ body {
 }
 </style>
 
-<script>
 
+<script>
     // متغيرات عامة
 let sales = JSON.parse(localStorage.getItem('sales')) || [];
 let chart = null;
@@ -933,6 +933,7 @@ function printReceipt() {
     const receiptContent = document.getElementById('receipt').innerHTML;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
+        <!DOCTYPE html>
         <html dir="rtl">
         <head>
             <title>طباعة البون</title>
@@ -947,16 +948,20 @@ function printReceipt() {
         </head>
         <body>
             ${receiptContent}
+            <script>
+                window.onload = function() {
+                    window.print();
+                    window.onafterprint = function() {
+                        window.close();
+                    };
+                };
+            </script>
         </body>
         </html>
     `);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
-}
+    }
+
 
 // إغلاق البون
 function closeReceipt() {
@@ -1004,276 +1009,7 @@ function renderMonthlyTotals() {
     list.innerHTML = '';
     
     monthlyData.forEach((data, index) => {
-        const li = document.createElement('li');
-        li.dataset.month = index;
-        li.innerHTML = `
-            <span>${months[index]}</span>
-            <span class="month-total">${data.total.toFixed(2)} درهم</span>
-        `;
-        
-        li.addEventListener('click', () => showMonthSummary(index));
-        list.appendChild(li);
-    });
-}
-
-// الحصول على بيانات المبيعات الشهرية
-function getMonthlyData() {
-    const currentYear = new Date().getFullYear();
-    const monthlyData = Array(12).fill().map(() => ({ total: 0, products: {} }));
-    
-    sales.forEach(sale => {
-        const saleDate = new Date(sale.timestamp || sale.date);
-        if (saleDate.getFullYear() === currentYear) {
-            const month = saleDate.getMonth();
-            monthlyData[month].total += sale.total;
-            
-            // تتبع المنتجات لكل شهر
-            if (!monthlyData[month].products[sale.productName]) {
-                monthlyData[month].products[sale.productName] = 0;
-            }
-            monthlyData[month].products[sale.productName] += sale.quantity;
-        }
-    });
-    
-    return monthlyData;
-}
-
-// تهيئة الرسم البياني
-function initChart() {
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    const monthlyData = getMonthlyData();
-    
-    // إنشاء ألوان متدرجة
-    const colors = generateGradientColors(12);
-    
-    chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: months,
-            datasets: [{
-                label: 'المبيعات (درهم)',
-                data: monthlyData.map(data => data.total),
-                backgroundColor: colors.map(color => color.fill),
-                borderColor: colors.map(color => color.border),
-                borderWidth: 2,
-                borderRadius: 8,
-                hoverBackgroundColor: colors.map(color => color.hover)
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        font: {
-                            family: "'Cairo', sans-serif",
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `المبلغ: ${context.parsed.y.toFixed(2)} درهم`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value + ' درهم';
-                        },
-                        font: {
-                            family: "'Cairo', sans-serif"
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.1)'
-                    }
-                },
-                x: {
-                    ticks: {
-                        font: {
-                            family: "'Cairo', sans-serif"
-                        }
-                    },
-                    grid: {
-                        color: 'rgba(0,0,0,0.1)'
-                    }
-                }
-            },
-            onClick: (e, elements) => {
-                if (elements.length > 0) {
-                    const monthIndex = elements[0].index;
-                    showMonthSummary(monthIndex);
-                }
-            }
-        }
-    });
-}
-
-// تحديث الرسم البياني
-function updateChart() {
-    if (chart) {
-        const monthlyData = getMonthlyData();
-        chart.data.datasets[0].data = monthlyData.map(data => data.total);
-        chart.update();
-    }
-}
-
-// إنشاء ألوان متدرجة للرسم البياني
-function generateGradientColors(count) {
-    const colors = [];
-    for (let i = 0; i < count; i++) {
-        const hue = (i * 30) % 360;
-        colors.push({
-            fill: `hsla(${hue}, 70%, 60%, 0.7)`,
-            border: `hsl(${hue}, 70%, 40%)`,
-            hover: `hsla(${hue}, 80%, 70%, 0.9)`
-        });
-    }
-    return colors;
-    }
-
-    // عرض البون
-function showReceipt(sale) {
-    const receiptHTML = `
-        <div class="receipt-header">
-            <div class="receipt-logo">
-                <div class="receipt-logo-img">EP</div>
-                <div class="receipt-logo-text">Elhomssi Parfums</div>
-            </div>
-            <p>فاتورة رقم: ${sale.id}</p>
-            <p>التاريخ: ${formatDate(sale.date)}</p>
-            <div style="border-bottom: 2px dashed #ccc; margin: 15px 0;"></div>
-        </div>
-        
-        <div class="receipt-details">
-            <div class="receipt-item">
-                <span>اسم العطر:</span>
-                <span>${sale.productName}</span>
-            </div>
-            <div class="receipt-item">
-                <span>ثمن الوحدة:</span>
-                <span>${sale.price.toFixed(2)} درهم</span>
-            </div>
-            <div class="receipt-item">
-                <span>الكمية:</span>
-                <span>${sale.quantity}</span>
-            </div>
-            <div class="receipt-item">
-                <span>ثمن التوصيل:</span>
-                <span>${sale.delivery.toFixed(2)} درهم</span>
-            </div>
-            <div class="receipt-item total">
-                <span>المجموع النهائي:</span>
-                <span>${sale.total.toFixed(2)} درهم</span>
-            </div>
-        </div>
-        
-        <div style="border-bottom: 2px dashed #ccc; margin: 20px 0;"></div>
-        
-        <div class="receipt-footer">
-            <p><strong>التوصيل أقل من 24 ساعة، ستحصل على طلبك قريباً</strong></p>
-            <p style="margin-top: 10px; color: #666; font-size: 0.85rem;">
-                شكراً لزيارتكم، نتمنى لكم تجربة رائعة مع عطورنا
-            </p>
-        </div>
-        
-        <div class="receipt-thankyou">
-            <p>شكرا لثقتكم في Elhomssi Parfums</p>
-            <p style="font-size: 0.8rem; margin-top: 5px;">للاستفسار: 0612345678</p>
-        </div>
-    `;
-    
-    document.getElementById('receipt').innerHTML = receiptHTML;
-    document.getElementById('receiptSection').style.display = 'block';
-    
-    // تمرير للبون
-    document.getElementById('receiptSection').scrollIntoView({ behavior: 'smooth' });
-}
-
-// طباعة البون
-function printReceipt() {
-    const receiptContent = document.getElementById('receipt').innerHTML;
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <html dir="rtl">
-        <head>
-            <title>طباعة البون</title>
-            <style>
-                body { font-family: 'Cairo', sans-serif; padding: 20px; }
-                .receipt { border: 2px solid #000; padding: 20px; max-width: 400px; margin: 0 auto; }
-                .receipt-item { display: flex; justify-content: space-between; margin: 10px 0; padding-bottom: 5px; border-bottom: 1px dotted #000; }
-                .total { font-weight: bold; font-size: 1.2em; margin-top: 20px; }
-                .receipt-footer { text-align: center; margin-top: 30px; font-size: 0.9em; }
-                @media print { body { margin: 0; padding: 10px; } }
-            </style>
-        </head>
-        <body>
-            ${receiptContent}
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
-}
-
-// إغلاق البون
-function closeReceipt() {
-    document.getElementById('receiptSection').style.display = 'none';
-}
-
-// عرض أكثر المنتجات مبيعاً
-function renderBestSellers() {
-    const products = {};
-    
-    sales.forEach(sale => {
-        if (!products[sale.productName]) {
-            products[sale.productName] = {
-                quantity: 0,
-                total: 0
-            };
-        }
-        products[sale.productName].quantity += sale.quantity;
-        products[sale.productName].total += sale.total;
-    });
-    
-    const sortedProducts = Object.entries(products)
-        .sort((a, b) => b[1].quantity - a[1].quantity)
-        .slice(0, 10);
-    
-    const tbody = document.getElementById('bestSellersBody');
-    tbody.innerHTML = '';
-    
-    sortedProducts.forEach(([productName, data], index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${productName}</td>
-            <td>${data.quantity}</td>
-            <td>${data.total.toFixed(2)} درهم</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// عرض إجمالي المبيعات الشهرية - معدل لإظهار الأشهر الفعلية فقط
-function renderMonthlyTotals() {
-    const monthlyData = getMonthlyData();
-    const list = document.getElementById('monthlyTotalsList');
-    list.innerHTML = '';
-    
-    monthlyData.forEach((data, index) => {
-        // عرض الشهر فقط إذا كان لديه مبيعات
+        // عرض الشهر فقط إذا كان هناك مبيعات
         if (data.total > 0) {
             const li = document.createElement('li');
             li.dataset.month = index;
@@ -1286,13 +1022,6 @@ function renderMonthlyTotals() {
             list.appendChild(li);
         }
     });
-    
-    // إذا لم تكن هناك مبيعات، عرض رسالة
-    if (list.children.length === 0) {
-        const message = document.createElement('li');
-        message.innerHTML = '<span style="text-align: center; color: #666; width: 100%;">لا توجد مبيعات مسجلة بعد</span>';
-        list.appendChild(message);
-    }
 }
 
 // الحصول على بيانات المبيعات الشهرية
@@ -1517,6 +1246,7 @@ function printMonthSummary() {
     const modalContent = document.getElementById('modalBody').innerHTML;
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
+        <!DOCTYPE html>
         <html dir="rtl">
         <head>
             <title>طباعة ملخص الشهر</title>
@@ -1580,15 +1310,18 @@ function printMonthSummary() {
                 <p>شكراً لثقتكم في Elhomssi Parfums</p>
                 <p style="font-size: 0.8em; color: #666;">هذا المستند تم إنشاؤه تلقائياً من نظام المبيعات</p>
             </div>
+            <script>
+                window.onload = function() {
+                    window.print();
+                    window.onafterprint = function() {
+                        window.close();
+                    };
+                };
+            </script>
         </body>
         </html>
     `);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
 }
 
 // إغلاق النافذة المنبثقة
@@ -1616,9 +1349,4 @@ function cleanupOldData() {
 // تشغيل التنظيف كل 30 يوم
 setInterval(cleanupOldData, 30 * 24 * 60 * 60 * 1000);
 </script>
-  
-
-                                        }
                 
-
-            
