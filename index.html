@@ -875,9 +875,7 @@ function showReceipt(sale) {
     const receiptHTML = `
         <div class="receipt-header">
             <div class="receipt-logo">
-                <div class="receipt-logo-img">
-    <img src="Logo22.jpg" alt="Logo">
-</div>
+                <div class="receipt-logo-img">EP</div>
                 <div class="receipt-logo-text">Elhomssi Parfums</div>
             </div>
             <p>فاتورة رقم: ${sale.id}</p>
@@ -1139,9 +1137,9 @@ function generateGradientColors(count) {
         });
     }
     return colors;
-}
+    }
 
-// عرض ملخص الشهر
+    // عرض ملخص الشهر
 function showMonthSummary(monthIndex) {
     const monthlyData = getMonthlyData();
     const monthData = monthlyData[monthIndex];
@@ -1338,38 +1336,6 @@ function cleanupOldData() {
 
 // تشغيل التنظيف كل 30 يوم
 setInterval(cleanupOldData, 30 * 24 * 60 * 60 * 1000);
-
-// إضافة بعض البيانات المبدئية للعرض التوضيحي (يمكن حذفها لاحقاً)
-if (sales.length === 0) {
-    const demoProducts = [
-        { name: "عطر الليل", price: 450, quantity: 3 },
-        { name: "عطر الصباح", price: 380, quantity: 5 },
-        { name: "عطر الذهب", price: 600, quantity: 2 },
-        { name: "عطر الفرسان", price: 520, quantity: 4 },
-        { name: "عطر الأميرة", price: 480, quantity: 6 }
-    ];
-    
-    const today = new Date();
-    for (let i = 0; i < 50; i++) {
-        const randomProduct = demoProducts[Math.floor(Math.random() * demoProducts.length)];
-        const randomMonth = Math.floor(Math.random() * 12);
-        const randomDay = Math.floor(Math.random() * 28) + 1;
-        
-        const saleDate = new Date(today.getFullYear(), randomMonth, randomDay);
-        
-        sales.push({
-            id: 1000 + i,
-            productName: randomProduct.name,
-            price: randomProduct.price,
-            quantity: Math.floor(Math.random() * 5) + 1,
-            delivery: 30,
-            total: (randomProduct.price * (Math.floor(Math.random() * 5) + 1)) + 30,
-            date: saleDate.toISOString().split('T')[0],
-            timestamp: saleDate.getTime()
-        });
-    }
-    
-    localStorage.setItem('sales', JSON.stringify(sales));
-    initApp();
-}
 </script>
+
+                    
