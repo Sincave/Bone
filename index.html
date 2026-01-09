@@ -2180,9 +2180,9 @@ function displayReceipt(sale) {
     // إنشاء محتوى البون
     receiptContent.innerHTML = `
         <div class="receipt-logo">
-            <div class="receipt-logo-circle">
-                <span>EP</span>
-            </div>
+            <div class="logo-img">
+    <img src="Logo22.jpg" alt="Elhomssi" />
+</div>
             <h3>ELHOMSSI PARFUMS</h3>
             <p>العطور الفاخرة الأصيلة</p>
         </div>
@@ -2280,6 +2280,13 @@ function printReceipt() {
                     color: #000;
                     direction: rtl;
                 }
+
+                .logo-img img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 50%;
+}
                 .receipt-print { 
                     max-width: 500px; 
                     margin: 0 auto;
